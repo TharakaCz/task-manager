@@ -5,7 +5,7 @@ import {
   PipeTransform,
 } from '@nestjs/common';
 import { TaskService } from './../../task.service';
-import { TaskStatus } from 'src/task/task.interface';
+import { TaskStatus } from 'src/task/task-status.enum';
 
 @Injectable()
 export class TaskStatusValidationPipe implements PipeTransform {
