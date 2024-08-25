@@ -1,23 +1,22 @@
 import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { Task } from './task.interface';
-import { CreateClassDTO } from './dto/create-task.dto';
+import { CreateTaskDTO } from './dto/create-task.dto';
 import { UpdateTaskDTO } from './dto/update-task.dto';
-import { FilterTaskDTO } from './dto/filter-task.dto';
 import { TaskRepository } from './task.repository';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Task as TaskEntity } from './task.entity';
 import { TaskStatus } from './task-status.enum';
-import { log } from 'console';
+import { FilterTaskDTO } from './dto/filter-task.dto';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class TaskService {
-  // private tasks: Task[] = [];
+  private taskRepository: TaskRepository;
 
-  constructor(
-    @InjectRepository(TaskRepository) private taskRepository: TaskRepository
-  ) {}
+  constructor(private dataSource: DataSource) {
+    this.taskRepository = new TaskRepository(dataSource);
+  }
   
-  async create(createTaskDTO: CreateClassDTO): Promise<Task> {
+  async create(createTaskDTO: CreateTaskDTO): Promise<Task | null> {
     const { title, description } = createTaskDTO;
     const task = new TaskEntity();
     task.title = title;
@@ -31,7 +30,7 @@ export class TaskService {
     }
   }
 
-  async update(id: number, updateTaskDTO: UpdateTaskDTO): Promise<Task> {
+  async update(id: number, updateTaskDTO: UpdateTaskDTO): Promise<Task | null> {
    
     const { title, description, status } = updateTaskDTO;
     try{
@@ -39,6 +38,7 @@ export class TaskService {
       task.title = title ?? task.title;
       task.description = description ?? task.description;
       task.status = status ?? TaskStatus.TODO;
+      await this.taskRepository.update(task.id, task);
       return task;
     }catch(error){
       console.error(error);
@@ -46,16 +46,14 @@ export class TaskService {
     }
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number): Promise<any> {
     const data = await this.findOne(id);
-    console.log(data);
-    
-    // const result = await this.taskRepository.delete(data.id);
-    // this.logger.log(result)
+    const result = await this.taskRepository.softDelete(data.id);
+    return result;
     
   }
 
-  async findOne(id: number): Promise<Task> {
+  async findOne(id: number): Promise<Task | null> {
     const data = await this.taskRepository.findOneBy({ id: id });
     if (!data) {
       throw new NotFoundException(`Task with "${id}" not found`);
@@ -63,22 +61,13 @@ export class TaskService {
     return data;
   }
 
-  // async getAll(filterTask: FilterTaskDTO): Promise<Task[]> {
-  //   if (Object.keys(filterTask).length) {
-  //     const { search, status } = filterTask;
-  //     let taskQueue = this.tasks;
-  //     if (search) {
-  //       taskQueue = taskQueue.filter(
-  //         (task) =>
-  //           task.title.includes(search) || task.description.includes(search),
-  //       );
-  //     }
-  //     if (status) {
-  //       taskQueue = taskQueue.filter((task) => task.status === status);
-  //     }
-  //     return taskQueue;
-  //   } else {
-  //     return this.tasks;
-  //   }
-  // }
+  async getAll(filterTask: FilterTaskDTO): Promise<Task[] | null> {
+    try {
+      const result = await this.taskRepository.getTasks(filterTask);
+      return result;
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException('Task fetch fail');
+    }
+  }
 }
