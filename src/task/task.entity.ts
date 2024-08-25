@@ -9,7 +9,7 @@ export class Task extends BaseEntity{
     title: string;
     @Column({type: 'text'})
     description: string;
-    @Column({default: TaskStatus.TODO})
+    @Column({default: TaskStatus.TODO, type: `enum`, enum: TaskStatus})
     status: TaskStatus;
     @Column({nullable: true})
     created_by: number;
