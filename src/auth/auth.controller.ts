@@ -4,13 +4,18 @@ import { AuthService } from './auth.service';
 import { UpdateUserDTO } from './dto/update-user.dto';
 import { Users } from './users.entity';
 import { UserFilterDTO } from './dto/user-filter.dto';
+import { CredentialDTO } from './dto/credential.dto';
 
 @Controller('auth')
 export class AuthController {
 
     constructor(private authService: AuthService){}
-
-    @Post('user/create')
+    
+    @Post('user/sign-in')
+    async login(@Body(ValidationPipe)credentialDTO: CredentialDTO):Promise<{accessToken:string}>{
+        return await this.authService.authenticate(credentialDTO);
+    }
+    @Post('user/sign-up')
     async create(@Body(ValidationPipe)createUserDTO: CreateUserDTO):Promise<Users|null>{
         return await this.authService.createUser(createUserDTO);
     }

@@ -1,8 +1,9 @@
-import { BaseEntity, Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, Timestamp, UpdateDateColumn } from "typeorm";
+import { BaseEntity, Column, CreateDateColumn, DeleteDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, Timestamp, UpdateDateColumn } from "typeorm";
 import { TaskStatus } from "./task-status.enum";
+import { Users } from "src/auth/users.entity";
 
 @Entity()
-export class Task extends BaseEntity{
+export class Tasks extends BaseEntity{
     @PrimaryGeneratedColumn()
     id: number;
     @Column({length: 255, type: 'char'})
@@ -11,16 +12,17 @@ export class Task extends BaseEntity{
     description: string;
     @Column({default: TaskStatus.TODO, type: `enum`, enum: TaskStatus})
     status: TaskStatus;
-    @Column({nullable: true})
-    created_by: number;
-    @Column({nullable: true})
-    updated_by: number;
+    @ManyToOne(() => Users, user => user.task, {eager: false, nullable: true})
+    user: Users;
+    @ManyToOne(() => Users, { nullable: true })
+    created_by: Users;
+    @ManyToOne(() => Users, { nullable: true })
+    updated_by: Users;
     @DeleteDateColumn()
     deleted_at: Date;
     @CreateDateColumn()
     created_at: Date;
     @UpdateDateColumn()
     updated_at: Date;
-
 
 }

@@ -1,5 +1,6 @@
-import { BaseEntity, Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { BaseEntity, Column, CreateDateColumn, DeleteDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { AvatarTypes } from "./avatar-types.enum";
+import { Tasks } from "src/task/task.entity";
 
 @Entity()
 export class Users extends BaseEntity {
@@ -17,14 +18,17 @@ export class Users extends BaseEntity {
     avatar: AvatarTypes;
     @Column({type: `char`, length: 255, nullable: true})
     avatar_path: string;
-    @Column({nullable: true})
-    created_by: number;
-    @Column({nullable: true})
-    updated_by: number;
+    @OneToMany(()=> Tasks, task => task.user, {eager: true, nullable: true})
+    task: Tasks[];
+    @ManyToOne(() => Users, { nullable: true })
+    created_by: Users;
+    @ManyToOne(() => Users, { nullable: true })
+    updated_by: Users;
     @DeleteDateColumn()
     deleted_at: Date;
     @CreateDateColumn()
     created_at: Date;
     @UpdateDateColumn()
     updated_at: Date;
+
 }

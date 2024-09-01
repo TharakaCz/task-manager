@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Body, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from './auth.repository';
 import { DataSource } from 'typeorm';
 import { CreateUserDTO } from './dto/create-user.dto';
@@ -7,13 +7,28 @@ import * as bcrypt  from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { UpdateUserDTO } from './dto/update-user.dto';
 import { UserFilterDTO } from './dto/user-filter.dto';
+import { CredentialDTO } from './dto/credential.dto';
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from './interface/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
     private authRepository: AuthRepository;
-
-    constructor(private datasource: DataSource){
+    private logger: Logger;
+    constructor(private datasource: DataSource, private jwtService: JwtService){
         this.authRepository = new AuthRepository(datasource);
+        this.logger = new Logger();
+    }
+
+    async authenticate(credentialDTO: CredentialDTO):Promise<{accessToken:string}>{
+        const user = await this.authRepository.findOneBy({'email': credentialDTO.email});
+        if(!user){
+            throw new NotFoundException(`User not found in ${credentialDTO.email} email`);
+        }
+        if(!await this.validatePassword(user, credentialDTO.password)){
+            throw new UnauthorizedException('Invalid Credentials');
+        }
+        return await this.generateJWTToken(user);
     }
 
     async createUser(createUserDTO: CreateUserDTO):Promise<Users | null>{
@@ -71,10 +86,27 @@ export class AuthService {
         }
     }
 
+    async validatePassword(user: Users, password: string): Promise<boolean|null>{
+        const match = await bcrypt.compare(password, user.password);
+        return match;
+    }
+
     private async hasingPassword(password: string, rounds: number = 12):Promise<string | null>{
         const salt = await bcrypt.genSalt(rounds);
         const hash = await bcrypt.hash(password, salt);
         return hash;
+    }
+
+    private async generateJWTToken(user: Users):Promise<{accessToken: string}>{
+        const {name, email} = user;
+        const payload: JwtPayload = {name, email};
+        try {
+            const accessToken = await this.jwtService.sign(payload);
+            return {accessToken};
+        } catch (error) {
+            this.logger.error(`token generate : ${error}`)
+            throw new InternalServerErrorException();
+        }
     }
     
 }

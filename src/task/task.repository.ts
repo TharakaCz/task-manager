@@ -1,14 +1,14 @@
 import {DataSource, Repository } from "typeorm";
-import { Task } from "./task.entity";
+import { Tasks } from "./task.entity";
 import { FilterTaskDTO } from "./dto/filter-task.dto";
 
-export class TaskRepository extends Repository<Task>{
+export class TaskRepository extends Repository<Tasks>{
 
     constructor(private dataSource: DataSource) {
-        super(Task, dataSource.createEntityManager());
+        super(Tasks, dataSource.createEntityManager());
     }
     
-    async getTasks(filterTaskDTO: FilterTaskDTO):Promise<Task[] | null>{
+    async getTasks(filterTaskDTO: FilterTaskDTO):Promise<Tasks[] | null>{
         const {status, search} = filterTaskDTO;
         const query = this.createQueryBuilder('task');
         if (status) {
